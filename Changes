@@ -1,0 +1,30 @@
+Revision history for Perl extension IPC::MPS.
+
+0.08  2010-07-21
+	- Distributed Programming
+
+0.07  2010-02-01
+	- Fix two errors bonded with "wt" sub
+
+0.06  2010-01-29
+	- Small cleaning code
+
+0.05  2010-01-24
+	- IPC::MPS::Event
+	- IPC::MPS::EV
+
+0.04  2010-01-22
+	- Fix logic error bonded with "wt" sub into IPC::MPS
+
+0.03  2010-01-14
+	- waiting for a response to a specific message
+	- doc
+	- test
+
+0.02  2010-01-03
+	- exit on parent exit
+	- demo
+	- doc
+
+0.01  2009-12-12
+	- original version
