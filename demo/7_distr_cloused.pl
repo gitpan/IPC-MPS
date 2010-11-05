@@ -11,6 +11,7 @@ if (fork) {
 
 	my $NODE_CLOSED;
 	msg NODE_CLOSED => sub { 
+		my ($vpid) = @_;
 		unless ($NODE_CLOSED++) {
 			print "NODE_CLOSED - CONNECTION\n";
 			my $vpid = open_node($host, $port + 1) or die "Cannot open node: $!";

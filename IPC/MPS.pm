@@ -526,6 +526,15 @@ Connecting to the remote node is done with 'open_node' subprogram:
 
  my $vpid = open_node($host, $port);
 
+To detect connection closing message NODE_CLOSED handler should be defined:
+
+ msg NODE_CLOSED => sub { 
+ 	my ($vpid) = @_;
+ 	...
+ };
+
+This statement is true for both the client and the server.
+
 =head1 EXAMPLES
 
 =head2 Ping Pong
@@ -707,6 +716,10 @@ Waiting for a response to a specific message.
  		snd($from, "sugar", ++$i);
  	};
  };
+
+=head1 DENO
+
+See directory demo.
 
 =head1 REALISATIONS
 
