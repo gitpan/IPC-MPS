@@ -5,8 +5,6 @@ version:      0.08
 version_from: IPC/MPS.pm
 installdirs:  site
 requires:
-    EV:                            0
-    Event:                         0
 
 distribution_type: module
 generated_by: ExtUtils::MakeMaker version 6.30

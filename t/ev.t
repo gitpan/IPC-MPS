@@ -1,9 +1,17 @@
 use strict;
 use warnings;
 
-use Test::More tests => 5;
+use Test::More;
 
-BEGIN { use_ok("IPC::MPS::EV") };
+BEGIN {
+	eval { require EV };
+	if ($@) {
+		plan skip_all => "module EV required";
+	} else {
+		plan tests => '5';
+		use_ok("IPC::MPS::EV");
+	}
+}
 
 
 my $vpid = spawn { 

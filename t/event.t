@@ -1,10 +1,17 @@
 use strict;
 use warnings;
 
-use Test::More tests => 5;
+use Test::More;
 
-BEGIN { use_ok("IPC::MPS::Event") };
-
+BEGIN {
+	eval { require Event };
+	if ($@) {
+		plan skip_all => "module Event required";
+	} else {
+		plan tests => '5';
+		use_ok("IPC::MPS::Event");
+	}
+}
 
 my $vpid = spawn { 
 	receive {

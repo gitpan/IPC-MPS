@@ -3,7 +3,7 @@ use warnings;
 
 use Test::More tests => 5;
 
-BEGIN { use_ok("IPC::MPS") };
+BEGIN { use_ok("IPC::MPS") }
 
 
 my $vpid = spawn { 
