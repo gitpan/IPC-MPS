@@ -717,7 +717,7 @@ Waiting for a response to a specific message.
  	};
  };
 
-=head1 DENO
+=head1 DEMO
 
 See directory demo.
 
