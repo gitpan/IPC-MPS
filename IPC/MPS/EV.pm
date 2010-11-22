@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(spawn receive msg snd wt snd_wt listener open_node);
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp;
 use EV;
@@ -71,6 +71,7 @@ sub snd($$;@) {
 	$vpid = $self_parent_vpid if $vpid == 0;
 	$DEBUG and print "Send message '$msg' from $self_vpid to $vpid vpid in $self_vpid (\$\$=$$) with args: ", join(", ", @args), ".\n";
 	push @{$snd{$vpid}}, [$self_vpid, $vpid, $msg, \@args];
+	w_event_cb_reg($vpid);
 }
 
 
@@ -242,13 +243,14 @@ sub wt($$) {
 
 
 sub w_event_cb_reg {
+	my ($to_vpid) = @_;
 
-		foreach my $to (keys %snd) {
+		foreach my $to (defined $to_vpid ? $to_vpid : keys %snd) {
 			if (@{$snd{$to}}) {
 				my $fh = $vpid2fh{$to};
 				unless ($fh) {
 					if (@spawn) {
-						carp "Probably have forgotten to call receive.";
+						carp "Probably have forgotten to call receive." if not defined $to_vpid;
 						next;
 					} else {
 						if ($self_parent_fh) {

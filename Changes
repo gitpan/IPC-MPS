@@ -1,5 +1,9 @@
 Revision history for Perl extension IPC::MPS.
 
+0.09  2010-10-19
+	- Laziness in message processing supported.
+	  It allows usage of side modules based on Event module (directly or thru AnyEvent).
+
 0.08  2010-07-21
 	- Distributed Programming
 

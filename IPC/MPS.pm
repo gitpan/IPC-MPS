@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(spawn receive msg snd wt snd_wt listener open_node);
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp;
 use IO::Select;
@@ -738,6 +738,68 @@ L<IPC::MPS::Event> based on L<Event>.
 L<IPC::MPS::EV> based on L<EV>.
 
 =back
+
+=head1 Compatibility with Event, AnyEvent based modules
+
+IPC::MPS::Event allows usage of side modules based on Event module (directly or thru AnyEvent). 
+
+=head2 Event timer
+
+ use IPC::MPS::Event;
+ use Event;
+ 
+ my $vpid = spawn {
+ 	receive {
+ 		msg ping => sub {
+ 			my ($from, $hello) = @_;
+ 			print "$hello; $$\n";
+ 			Event->timer(after => 1, cb => sub {
+ 				snd($from, "pong", "hy");
+ 			});
+ 		};
+ 	};
+ };
+ 
+ snd($vpid, "ping", "hello");
+ 
+ receive {
+ 	msg pong => sub {
+ 		my ($from, $hello) = @_;
+ 		print "$hello; $$\n";
+ 		print "EXIT\n";
+ 		exit;
+ 	};
+ };
+
+=head2 AnyEvent::HTTP
+
+ use IPC::MPS::Event;
+ use AnyEvent::HTTP;
+ 
+ my $vpid = spawn {
+ 	receive {
+ 		msg req => sub {
+ 			my ($from, $url) = @_;
+ 			http_get $url, sub { 
+ 				print ${$_[1]}{URL}, "\t", ${$_[1]}{Status}, "; $$\n";
+ 				snd($from, "res", $url, ${$_[1]}{Status});
+ 			};
+ 		};
+ 	};
+ };
+ 
+ snd($vpid, "req", "http://localhost/");
+ 
+ receive {
+ 	msg res => sub {
+ 		my ($from, $url, $status) = @_;
+ 		print "$url\t$status; $$\n";
+ 		print "EXIT\n";
+ 		exit;
+ 	};
+ };
+
+There is no possibility to use the module EV in the same way.
 
 =head1 SEE ALSO
 
