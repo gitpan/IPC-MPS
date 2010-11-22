@@ -739,11 +739,11 @@ L<IPC::MPS::EV> based on L<EV>.
 
 =back
 
-=head1 Compatibility with Event, AnyEvent based modules
+=head1 Compatibility with Event, EV, AnyEvent based modules
 
-IPC::MPS::Event allows usage of side modules based on Event module (directly or thru AnyEvent). 
+IPC::MPS::Event and IPC::MPS::EV allows usage of side modules based on Event, EV modules accordingly (directly or thru AnyEvent). 
 
-=head2 Event timer
+=head2 Timer
 
  use IPC::MPS::Event;
  use Event;
@@ -799,7 +799,19 @@ IPC::MPS::Event allows usage of side modules based on Event module (directly or 
  	};
  };
 
-There is no possibility to use the module EV in the same way.
+=head2 EV note
+
+Using EV based modules one should call EV::loop clearly:
+
+ use IPC::MPS::EV;
+ use AnyEvent::HTTP;
+ ...
+ 			http_get $url, sub { 
+ 				print ${$_[1]}{URL}, "\t", ${$_[1]}{Status}, "; $$\n";
+ 				snd($from, "res", $url, ${$_[1]}{Status});
+ 			};
+			use EV; EV::loop;
+ ...
 
 =head1 SEE ALSO
 
