@@ -19,7 +19,6 @@ use Storable qw(freeze thaw);
 my $DEBUG = 0;
 $DEBUG and require Data::Dumper;
 
-my $loop = EV::Loop->new();
 my @spawn            = ();
 my %msg              = ();
 my %fh2vpid          = ();
@@ -91,7 +90,7 @@ sub listener($$) {
 	my $sock = IO::Socket::INET->new(Proto => 'tcp', Blocking => 0, LocalHost => $host, LocalPort => $port, Listen => 20, ReuseAddr => 1);
 	if ($sock) {
 		$listener{$sock} = $sock;
-		$fh2rw{$sock} = $loop->io($sock, EV::READ, sub {
+		$fh2rw{$sock} = EV::io($sock, EV::READ, sub {
 			my $w = shift;
 			my $fh = $w->fh;
 			$DEBUG > 1 and print "Read event for listener from $self_vpid: \n";
@@ -102,7 +101,7 @@ sub listener($$) {
 			$fh2vpid{$sock}  = $vpid;
 			$vpid2fh{$vpid}  = $sock;
 			$fh2fh{$sock}    = $sock;
-			$fh2rw{$sock} = $loop->io($sock, EV::READ, \&r_event_cb);
+			$fh2rw{$sock} = EV::io($sock, EV::READ, \&r_event_cb);
 		});
 		return $sock;
 	} else {
@@ -126,7 +125,7 @@ sub open_node($$) {
 		$fh2vpid{$sock}  = $vpid;
 		$vpid2fh{$vpid}  = $sock;
 		$fh2fh{$sock}    = $sock;
-		$fh2rw{$sock} = $loop->io($sock, EV::READ, \&r_event_cb);
+		$fh2rw{$sock} = EV::io($sock, EV::READ, \&r_event_cb);
 		return $vpid;
 	} else {
 		carp "Cannot connect to socket '$host:$port' in $self_vpid: $!";
@@ -158,7 +157,7 @@ sub receive(&) {
 			}
 
 			close $_ foreach values %fh2fh, values %listener;
-			$loop = EV::Loop->new();
+			$_->stop foreach values %fh2rw, values %fh2ww;
 			@spawn    = ();
 			%listener = ();
 			%node     = ();
@@ -188,7 +187,7 @@ sub receive(&) {
 			$vpid2fh{$self_parent_vpid} = $self_parent_fh;
 			$fh2fh{$self_parent_fh}     = $self_parent_fh;
 
-			$fh2rw{$self_parent_fh} = $loop->io($self_parent_fh, EV::READ, \&r_event_cb);
+			$fh2rw{$self_parent_fh} = EV::io($self_parent_fh, EV::READ, \&r_event_cb);
 
 			$spawn->();
 
@@ -203,7 +202,7 @@ sub receive(&) {
 		$fh2vpid{$child} = $vpid;
 		$vpid2fh{$vpid}  = $child;
 		$fh2fh{$child}   = $child;
-		$fh2rw{$child} = $loop->io($child, EV::READ, \&r_event_cb);
+		$fh2rw{$child} = EV::io($child, EV::READ, \&r_event_cb);
 	}
 	@spawn = ();
 
@@ -216,7 +215,7 @@ sub receive(&) {
 	unless ($ipc_loop) {
 		$ipc_loop = 1;
 		w_event_cb_reg();
-		$loop->loop();
+		EV::loop;
 	}
 }
 
@@ -235,7 +234,7 @@ sub wt($$) {
 	}
 	$DEBUG and print "Start waiting for '$waited_vpid -> $waited_msg' in $self_vpid (\$\$=$$)\n";
 	w_event_cb_reg();
-	$loop->loop();
+	EV::loop;
 	my @rv = @waited_rv;
 	($waited_vpid, $waited_msg, @waited_rv) = ();
 	return wantarray ? @rv : $rv[0];
@@ -266,7 +265,7 @@ sub w_event_cb_reg {
 					my $buf = join "", pack("N", length $packet), $packet;
 					$w_bufs{$fh} = $buf;
 					$DEBUG and (@{$snd{$to}} or delete $snd{$to});
-					$fh2ww{$fh} = $loop->io($fh, EV::WRITE, \&w_event_cb);
+					$fh2ww{$fh} = EV::io($fh, EV::WRITE, \&w_event_cb);
 				}
 			}
 		}
@@ -360,12 +359,12 @@ sub r_event_cb {
 					splice @rcv, $i, 1;
 					$DEBUG and print "Stop waiting for '$waited_vpid -> $waited_msg' in $self_vpid (\$\$=$$)\n";
 					@waited_rv = @$args;
-					$loop->unloop();
+					EV::unloop();
 					return;
 				}
 			}
 			unless (exists $vpid2fh{$waited_vpid}) {
-				$loop->unloop();
+				EV::unloop();
 				return;
 			}			
 		} else {

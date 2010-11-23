@@ -799,20 +799,6 @@ IPC::MPS::Event and IPC::MPS::EV allows usage of side modules based on Event, EV
  	};
  };
 
-=head2 EV note
-
-Using EV based modules one should call EV::loop clearly:
-
- use IPC::MPS::EV;
- use AnyEvent::HTTP;
- ...
- 			http_get $url, sub { 
- 				print ${$_[1]}{URL}, "\t", ${$_[1]}{Status}, "; $$\n";
- 				snd($from, "res", $url, ${$_[1]}{Status});
- 			};
-			use EV; EV::loop;
- ...
-
 =head1 SEE ALSO
 
 Sometimes it is easier to use a module L<BGS> - Background execution of subroutines in child processes.
