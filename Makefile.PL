@@ -12,12 +12,14 @@ foreach (qw(Event EV)) {
 		}
 	}
 }
+my %pm = map { $_ => "\$(INST_LIBDIR)/$_" } ('IPC/MPS.pm', 'IPC/MPS/Event.pm', 'IPC/MPS/EV.pm');
 
 
 WriteMakefile(
     NAME              => 'IPC::MPS',
     VERSION_FROM      => 'IPC/MPS.pm', # finds $VERSION
     PREREQ_PM         => { @prereq_pm }, # e.g., Module::Name => 1.1
+	PM                => \%pm,
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'IPC/MPS.pm', # retrieve abstract from module
        AUTHOR         => 'Nick Kostirya <nick@ToDo.org>') : ()),

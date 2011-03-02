@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::MPS.
 
+0.10  2011-03-02
+	- Fix Makefile.PL
+
 0.09  2010-10-19
 	- Laziness in message processing supported
 	- IPC::MPS::EV: using EV "default event loop"
