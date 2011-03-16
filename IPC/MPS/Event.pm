@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(spawn receive msg snd wt snd_wt listener open_node);
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Carp;
 use Event;

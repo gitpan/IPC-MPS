@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::MPS.
 
+0.11  2011-03-12
+	- Fix Makefile.PL
+
 0.10  2011-03-02
 	- Fix Makefile.PL
 

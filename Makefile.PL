@@ -12,7 +12,7 @@ foreach (qw(Event EV)) {
 		}
 	}
 }
-my %pm = map { $_ => "\$(INST_LIBDIR)/$_" } ('IPC/MPS.pm', 'IPC/MPS/Event.pm', 'IPC/MPS/EV.pm');
+my %pm = map { $_ => "\$(INST_LIB)/$_" } ('IPC/MPS.pm', 'IPC/MPS/Event.pm', 'IPC/MPS/EV.pm');
 
 
 WriteMakefile(
