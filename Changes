@@ -1,5 +1,9 @@
 Revision history for Perl extension IPC::MPS.
 
+0.12  2012-04-14
+	- connected flag in NODE_CLOSED
+	- your own pack and unpack functions, instead of Storable
+
 0.11  2011-03-12
 	- Fix Makefile.PL
 

@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(spawn receive msg snd wt snd_wt listener open_node);
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Carp;
 use IO::Select;
@@ -37,6 +37,9 @@ my $ipc_loop         = 0;
 my @rcv    = ();
 my %r_bufs = ();
 my %w_bufs = ();
+
+my %pack   = ();
+my %unpack = ();
 
 my $need_reset = 0;
 
@@ -81,12 +84,13 @@ sub snd_wt($$;@) {
 }
 
 
-sub listener($$) {
-	my ($host, $port) = @_;
+sub listener($$;%) {
+	my ($host, $port, %args) = @_;
 	defined $host or carp("Argument host required"), return;
 	defined $port or carp("Argument port required"), return;
 	my $sock = IO::Socket::INET->new(Proto => 'tcp', Blocking => 0, LocalHost => $host, LocalPort => $port, Listen => 20, ReuseAddr => 1);
 	if ($sock) {
+		_pack_unpack($sock, %args) or return;
 		$listener{$sock} = $sock;
 		$sel->add($sock);
 		return $sock;
@@ -97,8 +101,8 @@ sub listener($$) {
 }
 
 
-sub open_node($$) {
-	my ($host, $port) = @_;
+sub open_node($$;%) {
+	my ($host, $port, %args) = @_;
 	defined $host or carp("Argument host required"), return;
 	defined $port or carp("Argument port required"), return;
 	my $sock = IO::Socket::INET->new(Proto => 'tcp', Blocking => 0);
@@ -106,6 +110,7 @@ sub open_node($$) {
 	$sock->sockopt(SO_KEEPALIVE, 1);
     my $rv = $sock->connect($addr);
 	if ($rv) {
+		_pack_unpack($sock, %args) or return;
 		my $vpid = refaddr $sock;
 		$node{$sock}     = $vpid;
 		$fh2vpid{$sock}  = $vpid;
@@ -119,6 +124,32 @@ sub open_node($$) {
 	}
 }
 
+
+sub _pack_unpack($%) {
+	my ($fh, %args) = @_;
+	if (my $pack = $args{pack} and my $unpack = $args{unpack}) {
+		my $r = eval {
+			my $r = $unpack->($pack->({a => ["b"]}));
+			if (ref $r eq "HASH" and ref $$r{a} eq "ARRAY" and
+				$$r{a}[0] and $$r{a}[0] eq "b")
+			{
+				return 1;
+			} else {
+				return 0;
+			}
+		};
+		if (not $r or $@) {
+			carp "False pack unpack test";
+			return;
+		}
+		$pack{$fh}   = $pack;
+		$unpack{$fh} = $unpack;
+	} elsif ($args{pack} or $args{unpack}) {
+		carp "pack and unpack is pair options";
+		return;
+	}
+	return 1;
+}
 
 
 sub receive(&) {
@@ -158,6 +189,9 @@ sub receive(&) {
 			@rcv    = ();
 			%r_bufs = ();
 			%w_bufs = ();
+
+			%pack   = ();
+			%unpack = ();
 
 			$need_reset = 0;
 
@@ -241,7 +275,12 @@ sub ipc_loop(;$$) {
 					}
 				}
 				unless (exists $w_bufs{$fh}) {
-					my $packet = freeze shift @{$snd{$to}};
+					my $packet;
+					if (my $pack = $pack{$fh}) {
+						$packet = $pack->(shift @{$snd{$to}});
+					} else {
+						$packet = freeze  shift @{$snd{$to}};
+					}
 					my $buf = join "", pack("N", length $packet), $packet;
 					$w_bufs{$fh} = $buf;
 					$DEBUG and (@{$snd{$to}} or delete $snd{$to});
@@ -262,6 +301,8 @@ sub ipc_loop(;$$) {
 		foreach my $fh (@$can_read) {
 			if ($listener{$fh}) {
 				my $sock = $fh->accept;
+				$pack{$sock}   = $pack{$fh};
+				$unpack{$sock} = $unpack{$fh};
 				$sock->sockopt(SO_KEEPALIVE, 1);
 				my $vpid = refaddr $sock;
 				$node{$sock}     = $vpid;
@@ -283,7 +324,12 @@ sub ipc_loop(;$$) {
 							$r_bufs{$fh} = $buf || "";
 							$DEBUG and ($r_bufs{$fh} or delete $r_bufs{$fh});
 
-							my ($from, $to, $msg, $args) = @{thaw $packet};
+							my ($from, $to, $msg, $args);
+							if (my $unpack = $unpack{$fh}) {
+								($from, $to, $msg, $args) = @{$unpack->($packet)};
+							} else {
+								($from, $to, $msg, $args) = @{thaw $packet};
+							}
 
 							if ($node{$fh}) {
 								$from = $node{$fh};
@@ -321,10 +367,12 @@ sub ipc_loop(;$$) {
 				delete $fh2fh{$fh};
 				delete $vpid2fh{$fh2vpid{$fh}};
 				delete $fh2vpid{$fh};
+				delete $pack{$fh};
+				delete $unpack{$fh};
 				if (my $vpid = $node{$fh}) {
 					delete $node{$fh};
 					if ($msg{NODE_CLOSED}) {
-						$msg{NODE_CLOSED}->($vpid);
+						$msg{NODE_CLOSED}->($vpid, $fh->connected ? 1 : 0);
 					}
 				}
  				close $fh;
@@ -511,8 +559,7 @@ Subprogram 'spawn' doesn't create processes directly, it just performs the prepa
 
 =item 5
 
-To wait the response to a specific message inside handler, subprogram 'wt' should be used. In Erlang it is done with the same
-'receive'.
+To wait the response to a specific message inside handler, subprogram 'wt' should be used. In Erlang it is done with the same 'receive'.
 
 =back
 
@@ -526,10 +573,20 @@ Connecting to the remote node is done with 'open_node' subprogram:
 
  my $vpid = open_node($host, $port);
 
+You may set youself pack and unpack functions, instead of freeze and thaw functions of Storable module:
+
+             listener($host, $port, pack => sub { ... }, unpack => sub { ... });
+ my $vpid = open_node($host, $port, pack => sub { ... }, unpack => sub { ... });
+
 To detect connection closing message NODE_CLOSED handler should be defined:
 
  msg NODE_CLOSED => sub { 
- 	my ($vpid) = @_;
+ 	my ($vpid, $connected) = @_;
+	if ($connected) {
+ 		print "Node closed.\n";
+ 	} else {
+ 		print "Cannot connect to node: $!.\n";
+ 	}
  	...
  };
 
