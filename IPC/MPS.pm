@@ -5,9 +5,9 @@ use warnings;
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(spawn receive msg snd wt snd_wt listener open_node);
+our @EXPORT = qw(spawn receive msg snd quit wt snd_wt listener open_node);
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Carp;
 use IO::Select;
@@ -33,6 +33,7 @@ my %listener         = ();
 my %node             = ();
 my %snd              = ();
 my $ipc_loop         = 0; 
+my $quit = 0;
 
 my @rcv    = ();
 my %r_bufs = ();
@@ -44,6 +45,7 @@ my %unpack = ();
 my $need_reset = 0;
 
 my $blksize = 1024 * 16;
+
 
 END {
 	$ipc_loop or @spawn and carp "Probably have forgotten to call receive.";
@@ -72,7 +74,11 @@ sub snd($$;@) {
 	$vpid = $self_parent_vpid if $vpid == 0;
 	$DEBUG and print "Send message '$msg' from $self_vpid to $vpid vpid in $self_vpid (\$\$=$$) with args: ", join(", ", @args), ".\n";
 	push @{$snd{$vpid}}, [$self_vpid, $vpid, $msg, \@args];
+	return 1;
 }
+
+
+sub quit() { $quit = 1 }
 
 
 sub snd_wt($$;@) {
@@ -256,7 +262,7 @@ sub wt($$) {
 sub ipc_loop(;$$) {
 	my ($waited_vpid, $waited_msg) = @_;
 	$DEBUG and print "Start ipc_loop in $self_vpid (\$\$=$$)\n";
-	RESET: while ($sel->count()) {
+	RESET: while ($sel->count() and not $quit) {
 
 		foreach my $to (keys %snd) {
 			if (@{$snd{$to}}) {
@@ -433,6 +439,8 @@ sub ipc_loop(;$$) {
 
 	}
 	$need_reset = 1;
+	$ipc_loop = 0;
+	$quit = 0;
 	return;
 }
 

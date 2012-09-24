@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               IPC-MPS
-version:            0.12
+version:            0.13
 abstract:           Message Passing Style of Inter-process communication
 author:
     - Nick Kostirya <nick@ToDo.org>

@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::MPS.
 
+0.13  2012-09-24
+	- quit for receive
+
 0.12  2012-04-14
 	- connected flag in NODE_CLOSED
 	- your own pack and unpack functions, instead of Storable

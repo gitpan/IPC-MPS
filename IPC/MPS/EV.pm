@@ -5,9 +5,9 @@ use warnings;
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(spawn receive msg snd wt snd_wt listener open_node);
+our @EXPORT = qw(spawn receive msg snd quit wt snd_wt listener open_node);
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Carp;
 use EV;
@@ -46,6 +46,7 @@ my ($waited_vpid, $waited_msg, @waited_rv);
 
 my $blksize = 1024 * 16;
 
+
 END {
 	$ipc_loop or @spawn and carp "Probably have forgotten to call receive.";
 	close $_ foreach values %fh2fh;
@@ -74,7 +75,11 @@ sub snd($$;@) {
 	$DEBUG and print "Send message '$msg' from $self_vpid to $vpid vpid in $self_vpid (\$\$=$$) with args: ", join(", ", @args), ".\n";
 	push @{$snd{$vpid}}, [$self_vpid, $vpid, $msg, \@args];
 	w_event_cb_reg($vpid);
+	return 1;
 }
+
+
+sub quit() { EV::unloop; $ipc_loop = 0 }
 
 
 sub snd_wt($$;@) {
