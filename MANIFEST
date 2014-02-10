@@ -7,6 +7,7 @@ t/event.t
 t/ev.t
 demo/1_cycle.pl
 demo/2_pingpong.pl
+demo/2_pingpong_cloused.pl
 demo/3_tree.pl
 demo/4_wait.pl
 demo/5_distr.pl
@@ -16,4 +17,5 @@ demo/8_distr_wt_cloused.pl
 IPC/MPS.pm
 IPC/MPS/Event.pm
 IPC/MPS/EV.pm
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

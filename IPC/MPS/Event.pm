@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(spawn receive msg snd quit wt snd_wt listener open_node);
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Carp;
 use Event;
@@ -378,17 +378,22 @@ sub r_event_cb {
 					delete $fh2ww{$fh};
 				}
 				$event->w->cancel;
+				my $vpid = delete $fh2vpid{$fh};
+				delete $vpid2fh{$vpid};
  				delete $r_bufs{$fh};
  				delete $w_bufs{$fh};
 				delete $fh2fh{$fh};
-				delete $vpid2fh{$fh2vpid{$fh}};
-				delete $fh2vpid{$fh};
 				delete $pack{$fh};
 				delete $unpack{$fh};
-				if (my $vpid = $node{$fh}) {
+				if (my $node_vpid = $node{$fh}) {
 					delete $node{$fh};
 					if ($msg{NODE_CLOSED}) {
-						$msg{NODE_CLOSED}->($vpid, $fh->connected ? 1 : 0);
+						$msg{NODE_CLOSED}->($node_vpid, $fh->connected ? 1 : 0);
+						w_event_cb_reg();
+					}
+				} else {
+					if ($msg{SPAWN_CLOSED}) {
+						$msg{SPAWN_CLOSED}->($vpid);
 						w_event_cb_reg();
 					}
 				}

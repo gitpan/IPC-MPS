@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::MPS.
 
+0.14  2013-02-04
+	- SPAWN_CLOSED
+
 0.13  2012-09-24
 	- quit for receive
 

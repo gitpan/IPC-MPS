@@ -7,7 +7,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(spawn receive msg snd quit wt snd_wt listener open_node);
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Carp;
 use IO::Select;
@@ -368,17 +368,21 @@ sub ipc_loop(;$$) {
  			} elsif (defined $len) {
  				$sel->remove($fh);
  				$w_sel->remove($fh);
+				my $vpid = delete $fh2vpid{$fh};
+				delete $vpid2fh{$vpid};
  				delete $r_bufs{$fh};
  				delete $w_bufs{$fh};
 				delete $fh2fh{$fh};
-				delete $vpid2fh{$fh2vpid{$fh}};
-				delete $fh2vpid{$fh};
 				delete $pack{$fh};
 				delete $unpack{$fh};
-				if (my $vpid = $node{$fh}) {
+				if (my $node_vpid = $node{$fh}) {
 					delete $node{$fh};
 					if ($msg{NODE_CLOSED}) {
-						$msg{NODE_CLOSED}->($vpid, $fh->connected ? 1 : 0);
+						$msg{NODE_CLOSED}->($node_vpid, $fh->connected ? 1 : 0);
+					}
+				} else {
+					if ($msg{SPAWN_CLOSED}) {
+						$msg{SPAWN_CLOSED}->($vpid);
 					}
 				}
  				close $fh;
@@ -522,6 +526,13 @@ The message sending.
 if vpid = 0 , this is a message to the parental process.
 
 If the parental process is over, the child process ends too.
+
+To detect spawn closing message SPAWN_CLOSED handler should be defined:
+
+ msg SPAWN_CLOSED => sub { 
+ 	my ($vpid) = @_;
+ 	...
+ };
 
 =head2 Dataflow programming
 
